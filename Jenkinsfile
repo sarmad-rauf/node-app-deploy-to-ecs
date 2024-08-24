@@ -11,7 +11,7 @@ pipeline {
         stage('Checkout Code') {
             steps {
                 // Checkout the Terraform configuration code from GitHub
-                git branch: 'main',
+                git branch: 'master',
                     url: 'https://github.com/sarmad-rauf/node-app-deploy-to-ecs',
                     credentialsId: "${GIT_CREDENTIALS_ID}"
             }
