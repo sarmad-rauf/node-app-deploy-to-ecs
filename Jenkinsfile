@@ -2,65 +2,84 @@ pipeline {
     agent any
 
     environment {
-        NODE_ENV = 'production'
-        TF_VAR_example = 'value'  // Define your Terraform variables here
+        GIT_CREDENTIALS_ID = 'github-pat'        // ID of your GitHub Personal Access Token in Jenkins
+        AWS_CREDENTIALS_ID = 'aws-credentials'   // ID of your AWS credentials in Jenkins
+        // AWS_REGION = 'us-west-2'                 // Change to your AWS region
     }
 
     stages {
         stage('Checkout Code') {
             steps {
-                git branch: 'main', url: 'https://your-git-repo-url.git'
-            }
-        }
-
-        stage('Install Node.js Dependencies') {
-            steps {
-                sh 'npm install'
-            }
-        }
-
-        stage('Run Tests') {
-            steps {
-                sh 'npm test'
+                // Checkout the Terraform configuration code from GitHub
+                git branch: 'main',
+                    url: 'https://github.com/sarmad-rauf/node-app-deploy-to-ecs',
+                    credentialsId: "${GIT_CREDENTIALS_ID}"
             }
         }
 
         stage('Terraform Init') {
             steps {
-                sh '''
-                cd terraform-directory
-                terraform init
-                '''
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', 
+                                  credentialsId: "${AWS_CREDENTIALS_ID}"]]) {
+                    // Initialize Terraform
+                    sh '''
+                    cd terraform-directory
+                    terraform init -backend-config="region=${AWS_REGION}"
+                    '''
+                }
             }
         }
 
         stage('Terraform Plan') {
             steps {
-                sh '''
-                cd terraform-directory
-                terraform plan
-                '''
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', 
+                                  credentialsId: "${AWS_CREDENTIALS_ID}"]]) {
+                    // Show the Terraform plan on the console
+                    sh '''
+                    cd terraform-directory
+                    terraform plan -out=tfplan
+                    '''
+                }
             }
         }
 
-        stage('Terraform Apply') {
+        stage('Manual Approval for Terraform Apply') {
             steps {
-                sh '''
-                cd terraform-directory
-                terraform apply -auto-approve
-                '''
+                script {
+                    // Prompt for manual approval before applying Terraform changes
+                    def userInput = input(
+                        message: 'Do you want to apply the Terraform changes?',
+                        ok: 'Apply',
+                        parameters: [choice(name: 'Apply Terraform?', choices: 'Yes\nNo', description: 'Approve to apply changes?')]
+                    )
+                    if (userInput == 'Yes') {
+                        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', 
+                                          credentialsId: "${AWS_CREDENTIALS_ID}"]]) {
+                            // Apply Terraform changes
+                            sh '''
+                            cd terraform-directory
+                            terraform apply -auto-approve tfplan
+                            '''
+                        }
+                    } else {
+                        error('Terraform apply was not approved by the user.')
+                    }
+                }
             }
         }
     }
 
     post {
         always {
+            // Clean up workspace
             cleanWs()
         }
         success {
+            // Notify on success
             echo 'Pipeline succeeded!'
         }
         failure {
+            // Notify on failure
             echo 'Pipeline failed!'
         }
     }
