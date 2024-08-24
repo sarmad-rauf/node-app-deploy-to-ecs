@@ -4,7 +4,7 @@ pipeline {
     environment {
         GIT_CREDENTIALS_ID = 'github-pat'        // ID of your GitHub Personal Access Token in Jenkins
         AWS_CREDENTIALS_ID = 'aws-credentials'   // ID of your AWS credentials in Jenkins
-        // AWS_REGION = 'us-west-2'                 // Change to your AWS region
+        AWS_REGION = 'us-east-1'                 // Change to your AWS region
     }
 
     stages {
@@ -23,7 +23,7 @@ pipeline {
                                   credentialsId: "${AWS_CREDENTIALS_ID}"]]) {
                     // Initialize Terraform
                     sh '''
-                    cd terraform-directory
+                    cd Ecs
                     terraform init -backend-config="region=${AWS_REGION}"
                     '''
                 }
