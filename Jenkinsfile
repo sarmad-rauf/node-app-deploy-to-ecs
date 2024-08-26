@@ -36,7 +36,7 @@ pipeline {
                                   credentialsId: "${AWS_CREDENTIALS_ID}"]]) {
                     // Show the Terraform plan on the console
                     sh '''
-                    cd terraform-directory
+                 
                     terraform plan -out=tfplan
                     '''
                 }
