@@ -37,7 +37,7 @@ pipeline {
                     // Show the Terraform plan on the console
                     sh '''
                     cd Ecs
-                    terraform plan -out=tfplan
+                    terraform plan 
                     '''
                 }
             }
